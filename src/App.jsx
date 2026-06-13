@@ -1,49 +1,44 @@
-import { useState, useEffect } from 'react'
-
-const saved = localStorage.getItem('tasks')
-const initialTasks = saved ? JSON.parse(saved) : ['Купить еду', 'Поспать']
+import { useState } from 'react'
+import './App.css'
+import SearchBox from './SearchBox'
+import WeatherCard from './WeatherCard'
 
 function App() {
-  const [tasks, setTasks] = useState(initialTasks)
-  const [input, setInput] = useState('')
+  const [city, setCity] = useState('')
+  const [weather, setWeather] = useState(null)
+  const [error, setError] = useState(null)
 
-  function addTask() {
-    if (input === '') return
-    setTasks([...tasks, input])
-    setInput('')
+  async function load() {
+    if (city === '') {
+      setError('What city, huh?')
+      return
+    }
+
+    try {
+      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=683a6d5b29a7b39566511fc43c22b7b7&units=metric`)
+      const data = await response.json()
+
+      if (data.cod === '404') {
+        setError('No such city, my dude')
+        setWeather(null)
+      } else {
+        setWeather(data)
+        setError(null)
+      }
+    } catch {
+      setError('Sum wrong my nibba')
+    }
   }
-
-  function deleteTask(index) {
-    const newTasks = tasks.filter(function(task, i) {
-        return i !== index
-    })
-    setTasks(newTasks)
-  }
-
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks))
-  }, [tasks])
-
   return (
-    <div>
-      <h1>Мои задачи</h1>
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Новая задача"
+    <section className="searcher">
+      <SearchBox
+        city={city}
+        onCityChange={setCity}
+        onSearch={load}
       />
-      <button onClick={addTask}>Добавить</button>
-      <ul>
-        {tasks.map(function(task, index) {
-          return (
-                <li key={index}>
-                    {task}
-                    <button onClick={() => deleteTask(index)}>✕</button>
-                </li>
-          )     
-        })}
-      </ul>
-    </div>
+      {error && <p>{error}</p>}
+      {weather && <WeatherCard weather={weather} />}
+    </section>
   )
 }
 
